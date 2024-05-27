@@ -74,7 +74,9 @@ openai.api_key = os.environ["OPENAI_KEY"]
 model = "gpt-4"
 #model = "gpt-3.5-turbo"
 
-cred = credentials.Certificate(json.loads(base64.b64decode(os.environ["FB_ADMIN"]).decode("utf-8")))
+key_filepath = os.path.join(os.path.dirname(__file__), "firebase_key.json")
+cred = credentials.Certificate(json.load(open(key_filepath)))
+
 fb_app = firebase_admin.initialize_app(cred, name=__name__)
 db = firestore.client(fb_app)
 messages: Dict[str, Messages] = {}
