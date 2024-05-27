@@ -1,3 +1,4 @@
+Note: `tools` folder is adapted from [here](https://github.com/extropolis/ChatBE-plugins)
 
 ## API keys
 
