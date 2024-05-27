@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <label> 
+        user_id:
+        <input type="text" id="user_id">
+    </label>
+    <button onclick="submit()">Login</button>
+    <script>
+        valid_user_ids = ["saahi_scratchpad_2", "rIentLiE", "otioRdWE", "OalOgNis", "twPFnRBs", "wqNtoLRo", "KiXxwAfM", "DwuaqTPQ", "NYiGHwnc", "QVavuwUs", "umfkwqoV", "JHyRtMxK", "iuKgecwf", "wjotuigx", "cCyMLGfu", "FNsuikrZ", "yePofnwB", "tEzTYKHJ", "RgTPuYha", "TVtmRKFn", "ebnZXbCN", "skaRxRVs", "jwWAKsep", "cvTyhGrg", "XoytLCxE", "zgmBaHKY", "gfWLkZjj", "ikXWYoBC", "BTaWkDxL", "rHQNsdEt", "VFNHxXZR", "gHwtftJx", "vRmeJETD", "bZtQgBHz", "UEqYuTyf", "fKFvhrAb", "ofPGEpgV", "eNmhvYBe", "sHieWkDe", "utZDsLMJ", "rDnCxMjo", "oLgsjGWM"];
+        function submit() {
+            var userId = document.getElementById("user_id").value;
+            if (userId === "") {
+                alert("Error: Please enter a user ID.");
+            } else {
+                window.location.href = "index.html?user_id=" + userId;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Interface</title>
+    <style>
+        /* Hide all sections except the chat and input areas */
+        h1, #prompts, #download-transcript, #clear-history, #file-link-div,
+        #upload-file-form, #remove-uploaded-file, form, #update-settings {
+            display: none;
+        }
+        /*
+        #prompts {
+            display: flex;
+            flex-direction: column;
+            height: 50%;
+            max-height: 400px;
+            overflow: auto;
+            background: #f8f8e6;
+        }*/
+        #chat {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            height: 500px;
+            max-height: 600px;
+            overflow: auto;
+            background: #eeeaf0da;
+            margin-top: 20px; /* Added some margin at the top for better layout */
+            border: 5px solid #514f4f; /* Optional: adds a border */
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 10px;
+        }
+        /* New styles for chat messages */
+        .message {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+        }
+
+        .user-message {
+            background-color: #daf8cb;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+            border: 1px solid #ccc; /* Optional: adds a border */
+        }
+
+        .assistant-message {
+            background-color: #f6f5f5;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+            border: 1px solid #ccc; /* Optional: adds a border */
+        }
+        #input {
+            display: flex;
+            flex-direction: row;
+            height: 20%;
+        }
+        textarea {
+            flex-grow: 1; /* Make textarea expand to fill available space */
+            border-radius: 20px; /* Rounded corners */
+            border: 1px solid #d1d1d1; /* Light grey border */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Subtle shadow */
+            padding: 10px; /* Padding inside the textarea */
+            margin-right: 5px; /* Space between textarea and button */
+            resize: none; /* Prevent resizing of the textarea */
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* iMessage-like font */
+        }
+
+        button {
+            width: 60px; /* Set a fixed width for the button */
+            border-radius: 20px; /* Rounded corners */
+            border: 1px solid #d1d1d1; /* Light grey border */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Subtle shadow */
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* iMessage-like font */
+        }
+
+        /* Tooltip container */
+        .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+        }
+
+        /* Tooltip text */
+        .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        padding: 5px 0;
+        border-radius: 6px;
+
+        /* Position the tooltip text - see examples below! */
+        position: absolute;
+        z-index: 1;
+        }
+
+        /* Show the tooltip text when you mouse over the tooltip container */
+        .tooltip:hover .tooltiptext {
+        visibility: visible;
+        }
+
+        div {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+        }
+        fieldset {
+            background: #ece6ff
+        }
+        legend {
+            padding: 0px 0;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mock Front-End</h1>
+    <h1>Prompts</h1>
+    <div id="prompts"></div>
+    <h2>Personal SAT Sessions</h2>
+    <div id="chat"></div>
+    <div id="input">
+        <textarea id="message" placeholder="Type your message here..."></textarea>
+        &nbsp;&nbsp;
+        <button id="send">Send</button>
+    </div>
+    <br>
+    <div id="download-transcript">
+        <button id="transcript">Download Transcript</button>
+        <p>The downloaded transcript combines all of Assistant's responses.</p>
+    </div>
+    <br>
+    <div id="clear-history">
+        <button id="clear">Clear Chat History</button>
+        <p>This cannot be undone.</p>
+    </div>
+    <br>
+    <h1>File related</h1>
+    <div id="file-link-div">
+        <textarea id="file-link" placeholder="Enter a link that you want to discuss about."></textarea>
+        <button id="file-link-submit">Submit</button>
+    </div>
+    <form id="upload-file-form" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" id="file-field">
+        <input type="submit">
+        <p id="processing-info"></p>
+        <p>Upload a file for processing. For now, only a pdf file with text, txt, json or code files are supported. Or you can choose to submit a link to a webpage above.</p>
+    </form>
+    <div id="remove-uploaded-file">
+        <button id="remove-file">Remove Uploaded File</button>
+    </div>
+    <br>
+    <h1>Settings</h1>
+    <h1><font color="red">red text color</font> indicates a developer-only setting, or something given automatically by the front-end</h1>
+    <form>
+        <fieldset>
+            <legend>Plug-ins:</legend>
+            <br>
+            <div id="tools">
+            </div>
+        </fieldset>
+        <br>
+        <fieldset>
+            <legend>Metadata:</legend>
+            <br>
+            <div>
+                <label for="name"><font color="red">Latitude:</font></label>
+                <input type="text" id="latitude-input">
+            </div>
+            <div>
+                <label for="name"><font color="red">Longitude:</font></label>
+                <input type="text" id="longitude-input">
+            </div>
+        </fieldset>
+        <br>
+        <fieldset>
+            <legend>Personal Information:</legend>
+            <br>
+            <div>
+                <label for="name">Name:</label>
+                <input type="text" id="user-name">
+            </div>
+            <div>
+                <label for="name"><font color="red">User ID:</font></label>
+                <input type="text" id="user-id" value="test">
+            </div>
+        </fieldset>
+        <br>
+        <fieldset>
+            <legend>AI Assistant:</legend>
+            <br>
+            <div>
+                <label for="name">Assistant's Name:</label>
+                <input type="text" id="assistant-name" value="Elivia">
+            </div>
+            <div>
+                <label for="name">Gender:</label>
+                <select id="assistant-gender">
+                    <option value="NA"></option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label for="name">Relationship:</label>
+                <select id="assistant-relationship">
+                    <option value="NA"></option>
+                    <option value="Friend">Friend</option>
+                    <option value="Lover">Lover</option>
+                    <option value="Aquaintance">Aquaintance</option>
+                </select>
+            </div>
+            <div>
+                <label for="name">GPT Mode:</label>
+                <select id="assistant-mode">
+                    <!-- <option value="Smart">Smart</option>
+                    <option value="Fast">Fast</option> -->
+                </select>
+            </div>
+            <div>
+                <label for="name">Sarcasm:</label>
+                <input type="range" min="0" max="100" value="50" id="sarcasm">
+                <span id="sarcasm-val">0.50</span>
+              </div>
+        </fieldset>
+        <br>
+        <fieldset>
+            <legend>AI Description:</legend>
+            <div>
+                <p>To simplify the mock front-end, write each new attribute on a new line</p>
+                <textarea id="ai-description" rows="6">You talk about ideas and funny stuff
+You are not an assistant
+Your replies should be short and to the point
+You like to make sarcastic remarks
+                </textarea>
+            </div>
+        </fieldset>
+        <br>
+        <fieldset>
+            <legend>Your Interests:</legend>
+            <div>
+                <p>To simplify the mock front-end, write each new interest on a new line</p>
+                <textarea id="user-interests" rows="6">
+                </textarea>
+            </div>
+        </fieldset>
+    </form>
+    <br>
+    <div id="update-settings">
+        <button id="update">Update Settings</button>
+        <p>Most of this info is stored in the firebase database associated with the user-id</p>
+        <button id="save-settings">Save Settings</button>
+        <p>Save your settings as a local JSON file, in case of overwriting</p>
+        <input type="file" id="load-settings" accept=".json" style="display: none;" onchange="loadUserLocalSettings(event)">
+        <button onclick="document.getElementById('load-settings').click()">Load Settings</button>
+        <p>Load your settings from a local JSON file</p>
+    </div>
+    <br>
+    <br>
+
+    <!-- Custom Logic -->
+    <script>
+        const promptsDiv = document.getElementById('prompts');
+        const chat = document.getElementById('chat');
+        const sendButton = document.getElementById('send');
+        const clearButton = document.getElementById('clear');
+        const updateButton = document.getElementById('update');
+        const saveTranscriptButton = document.getElementById('transcript');
+
+        const fileToUpload = document.getElementById("file-field");
+        const fileUrlInput = document.getElementById("file-link");
+
+        const messageInput = document.getElementById('message');
+
+        const latitudeInput = document.getElementById("latitude-input");
+        const longitudeInput = document.getElementById("longitude-input");
+        const sarcasmSliderInput = document.getElementById("sarcasm");
+        const sarcasmSliderValue = document.getElementById("sarcasm-val");
+        sarcasmSliderInput.addEventListener("input", () => {
+            sarcasmSliderValue.innerHTML = (sarcasmSliderInput.value / 100.0).toFixed(2);
+        });
+
+        const userId = document.getElementById('user-id');
+        let user_id = userId.value.trim();
+        let user_assistant_name = document.getElementById('assistant-name').value.trim();
+
+        var url = window.location.href;
+        // Use the URLSearchParams API to parse the query string
+        var params = new URLSearchParams(url.split('?')[1]);
+        const host_name = window.location.host;
+        scheme = "http";
+        //This is my new comment
+
+        // Get the value of the user_id parameter
+        if (params.get("user_id") !== null) {
+            user_id = params.get('user_id');
+            userId.value = user_id;
+        }
+        // Use the value of userId as needed
+        console.log("user ID: " + user_id);
+        document.getElementById("upload-file-form").addEventListener("submit", async (event) => {
+            fileUrlInput.value = "";
+            event.preventDefault();
+            document.getElementById("processing-info").innerText = "Processing...";
+            const formData = new FormData(event.target);
+            const response = await fetch(`${scheme}://${host_name}/upload_file/${user_id}`, {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+            document.getElementById("processing-info").innerText = "";
+            console.log(result);
+            if (result["status"] == "success") {
+                alert("Upload successfully");
+            } else {
+                const msg = result["detail"];
+                alert(`Upload failed ${msg}`);
+            }
+        });
+
+        fileToUpload.onchange = () => {
+            if (fileToUpload.files) {
+                console.log(fileToUpload.files[0].size);
+            }
+            if (fileToUpload.files && fileToUpload.files[0].size > 10485760){
+                alert("File is too big! The file size limit is 10MB.");
+                fileToUpload.value = "";
+            };
+        };
+
+        document.getElementById("file-link-submit").onclick = async () => {
+            fileToUpload.value = "";
+            document.getElementById("processing-info").innerText = "Processing...";
+            const body = {"url": fileUrlInput.value.trim()};
+            const response = await fetch(`${scheme}://${host_name}/upload_file_url/${user_id}`, {
+                method: "POST",
+                body: JSON.stringify(body),
+                headers: {"Content-Type": "application/json"}
+            });
+            const result = await response.json();
+            console.log(result);
+            document.getElementById("processing-info").innerText = "";
+            if (result["status"] == "success") {
+                alert("Upload successfully");
+            } else {
+                const msg = result["detail"];
+                alert(`Upload failed ${msg}`);
+            }
+        };
+
+        document.getElementById("remove-file").onclick = async () => {
+            fileToUpload.value = "";
+            fileUrlInput.value = "";
+            const response = await fetch(`${scheme}://${host_name}/clear_upload_file/${user_id}`);
+            const result = await response.json();
+            console.log(result);
+        };
+
+        //const websocket = new WebSocket(`ws://${host_name}/ws/` + user_id);
+        const websocketScheme = "ws";
+        const websocket = new WebSocket(`${websocketScheme}://${host_name}/ws/` + user_id);
+
+
+        async function loadToolList() {
+            const result = await fetch(`${scheme}://${host_name}/tools/` + user_id, {headers: {'mode':'no-cors'}});
+            const tools = await result.json();
+            const tools_list = document.getElementById("tools");
+            for (let tool_name in tools) {
+                let list_item = document.createElement("div");
+                let tool_label = `<label>
+                        <input type="checkbox" name="${tool_name}" id="${tool_name}">
+                        <span class="tooltip">${tool_name}
+                            <span class="tooltiptext">${tools[tool_name]["desc"]}</span>
+                        </span>
+                    </label>`;
+                list_item.innerHTML += tool_label;
+                tools_list.appendChild(list_item);
+                let tool_checkbox = document.querySelector(`#${tool_name}`);
+                tool_checkbox.checked = tools[tool_name]["enabled"];
+                tool_checkbox.addEventListener("change", () => onToolCheckBoxChanged(tool_checkbox));
+            }
+        }
+
+        loadToolList();
+
+        async function onToolCheckBoxChanged(checkbox) {
+            const body = {"tool_name": checkbox.name, "enabled": checkbox.checked}
+            const options = {
+                method: "POST",
+                body: JSON.stringify(body),
+                headers: {"Content-Type": "application/json"}
+            }
+            const result = await fetch(`${scheme}://${host_name}/tools/` + user_id, options);
+            const j = await result.json();
+            console.log(j);
+            if (checkbox.name == "image_creation") {
+                // Hack
+                alert("Please download the JSON file, as your settings will be overwritten and permanently lost when you enable this plugin. You can recover the settings by loading the same JSON file.");
+                saveUserSettingsLocally();
+            }
+            await get_user_settings(user_id);
+        }
+
+        function scrollToBottom(element) {
+            element.scrollTop = element.scrollHeight - element.clientHeight;
+        }
+/*
+        function addMessageToChat(messageText, sender) {
+            //const message = document.createElement('p');
+            //message.textContent = sender + ': ' + messageText;
+            //chat.appendChild(message);
+            //scrollToBottom(chat);
+
+            const message = document.createElement('div');
+            message.classList.add('message');
+            if (sender === 'You') {
+                message.classList.add('user-message');
+            } else {
+                message.classList.add('assistant-message');
+            }
+            message.textContent = messageText;
+            chat.appendChild(message);
+            scrollToBottom(chat);
+        }
+*/
+        function addMessageToChat(messageText, sender) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('message');
+
+            if (sender === 'You') {
+                messageWrapper.classList.add('user-message');
+            } else {
+                messageWrapper.classList.add('assistant-message');
+            }
+
+            const messageContent = document.createElement('p');
+            messageContent.textContent = messageText;
+            messageWrapper.appendChild(messageContent);
+            chat.appendChild(messageWrapper);
+            scrollToBottom(chat);
+        }
+/*
+        websocket.onmessage = async (event) => {
+            const message = document.createElement('p');
+            message.textContent = `${user_assistant_name}: ${event.data}`;
+            chat.appendChild(message);
+            scrollToBottom(chat);
+            if (message.textContent.includes("END")) {
+                // update the prompts
+                const result = await fetch(`${scheme}://${host_name}/prompts/` + user_id, {headers: {'mode':'no-cors'}});
+                const j = await result.json();
+                if (j["status"] == "success") {
+                    promptsDiv.innerText = j["detail"];
+                } else {
+                    promptsDiv.innerText = `Failed to retrieve the prompts\n, ${j["detail"]}`;
+                }
+            }
+        };
+
+*/
+        websocket.onmessage = async (event) => {
+            if (event.data.includes("END")) {
+                // Handle the END message and update the prompts
+                const result = await fetch(`${scheme}://${host_name}/prompts/` + user_id, {headers: {'mode':'no-cors'}});
+                const j = await result.json();
+                if (j["status"] == "success") {
+                    promptsDiv.innerText = j["detail"];
+                } else {
+                    promptsDiv.innerText = `Failed to retrieve the prompts\n, ${j["detail"]}`;
+                }
+            } else {
+                /*
+                // Split the received message into lines
+                const lines = event.data.split('\n');
+                // Process each line to remove the number and dash prefix
+                const processedLines = lines.map(line => {
+                    const parts = line.split('-');
+                    // Remove the first part if it's a number
+                    if (parts.length > 1 && !isNaN(parts[0])) {
+                        return parts.slice(1).join('-');
+                    }
+                    return line;
+                });
+                // Join the processed lines back into a single string
+                const processedMessage = processedLines.join('\n');
+
+                // Create a div element for the assistant's message
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', 'assistant-message');
+                messageDiv.textContent = processedMessage;
+                chat.appendChild(messageDiv);
+                */
+
+
+
+
+
+                // Create a div element for the assistant's message
+                const message = document.createElement('div');
+                message.classList.add('message', 'assistant-message');
+                message.textContent = event.data.replace(`${user_assistant_name}: `, "");
+                message.textContent = event.data.replace(/\d+-/g, "");
+                chat.appendChild(message);
+
+            }
+            scrollToBottom(chat);
+        };
+
+
+        sendButton.onclick = () => {
+            const message = messageInput.value.trim();
+            const lat = latitudeInput.value.trim();
+            const long = longitudeInput.value.trim();
+            if (message) {
+                websocket.send(JSON.stringify({
+                    role: 'user',
+                    content: message,
+                    location: {
+                        latitude: lat,
+                        longitude: long,
+                    },
+                    datatime: ""
+                }));
+                addMessageToChat(message, 'You');
+                messageInput.value = '';
+            }
+        };
+
+        clearButton.onclick = async () => {
+            const body = {}
+            const options = {
+                method: "POST",
+                body: JSON.stringify(body)
+            }
+            const result = await fetch(`${scheme}://${host_name}/clear_history/` + user_id, options);
+            console.log(result);
+
+            // clears previous chat
+            chat.innerHTML = "";
+        };
+
+        saveTranscriptButton.onclick = async () => {
+            const conversation = Array.from(chat.querySelectorAll("p"));
+            const text = conversation.map(p => p.textContent).join("\n");
+            const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+            const date = new Date();
+            const timestamp = date.toISOString().replace(/[:\-T]/g, "_").replace(/\..+/, "");
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `conversation_${timestamp}.txt`;
+            a.click();
+        };
+
+        updateButton.onclick = async () => {
+            const userName = document.getElementById('user-name');
+            const assistantName = document.getElementById('assistant-name');
+            const assistantGender = document.getElementById('assistant-gender');
+            const assistantRelationship = document.getElementById('assistant-relationship');
+            const assistantMode = document.getElementById('assistant-mode');
+            const aiDescription = document.getElementById('ai-description');
+            const userInterests = document.getElementById('user-interests');
+
+            // TODO: check that all of these match the iOS frontend
+            let user_name = userName.value.trim();
+            let assistant_name = assistantName.value.trim();
+            let assistant_gender = assistantGender.value.trim();
+            let assistant_relationship = assistantRelationship.value.trim();
+            let assistant_mode = assistantMode.value.trim();
+            let ai_description = aiDescription.value.trim() === "" ? [] : aiDescription.value.trim().split("\n");
+            let user_interests = userInterests.value.trim() === "" ? [] : userInterests.value.trim().split("\n");
+            let sarcasm = sarcasmSliderInput.value / 100.0;
+
+            user_assistant_name = assistant_name;
+
+            // TODO: check that all of these match the iOS frontend
+            const user_settings_data = {
+                "userId": user_id,
+                "yourName": user_name === "" ? null : user_name,
+                "assistantsName": assistant_name,
+                "gender": assistant_gender === "no-selection" ? null : assistant_gender,
+                "relationship": assistant_relationship === "no-selection" ? null : assistant_relationship,
+                "gptMode": assistant_mode,
+                "aiDescription": ai_description,
+                "aiSarcasm": sarcasm,
+                "yourInterests": user_interests,
+                "newsKeywords": null,
+            }
+
+            const options = {
+                method: "POST",
+                body: JSON.stringify(user_settings_data),
+                headers: {"Content-Type": "application/json"}
+            }
+            const result = await fetch(`${scheme}://${host_name}/user_settings/` + user_id, options);
+            console.log(result);
+            await get_user_settings(user_id);
+
+            // console.log(user_settings_data);
+            // var userDocRef = userSettingsCollection.doc(user_id);
+
+            // // TODO: To get this to work, I changed the firebase rules to allow any reads/writes
+            // //       I'm pretty sure this is not good. But to fix this, I think we need user authentication somehow
+            // //       and I didn't feel like doing this.
+            // userDocRef.get()
+            //     .then(function(docSnapshot) {
+            //         if (docSnapshot.exists) {
+            //             // Document exists, proceed with update
+            //             userDocRef.update(user_settings_data)
+            //                 .then(function() {
+            //                     console.log("User settings updated successfully.");
+            //                 })
+            //                 .catch(function(error) {
+            //                     console.error("Error updating user settings:", error);
+            //                 });
+            //         } else {
+            //             // Document does not exist, create a new instance
+            //             userDocRef.set(user_settings_data)
+            //                 .then(function() {
+            //                 console.log("New user settings created successfully.");
+            //                 })
+            //                 .catch(function(error) {
+            //                 console.error("Error creating new user settings:", error);
+            //                 });
+            //         }
+            //     })
+            //     .catch(function(error) {
+            //         console.error("Error getting document:", error);
+            //     });
+
+        };
+
+        function updateUserSettingHTML(user_settings) {
+            const userName = document.getElementById('user-name');
+            const assistantName = document.getElementById('assistant-name');
+            const assistantGender = document.getElementById('assistant-gender');
+            const assistantRelationship = document.getElementById('assistant-relationship');
+            const assistantMode = document.getElementById('assistant-mode');
+            const aiDescription = document.getElementById('ai-description');
+            const userInterests = document.getElementById('user-interests');
+            userName.value = "yourName" in user_settings ? user_settings["yourName"] : "";
+            assistantName.value = "assistantsName" in user_settings ? user_settings["assistantsName"] : "";
+            assistantGender.value = "gender" in user_settings ? user_settings["gender"] : "Female";
+            assistantRelationship.value = "relationship" in user_settings ? user_settings["relationship"] : "";
+            assistantMode.value = "gptMode" in user_settings ? user_settings["gptMode"] : "Smart";
+            aiDescription.value = "aiDescription" in user_settings ? user_settings["aiDescription"].join("\n") : "";
+            userInterests.value = "yourInterests" in user_settings ? user_settings["yourInterests"].join("\n") : "";
+            sarcasmSliderInput.value = "aiSarcasm" in user_settings ? Math.floor(user_settings["aiSarcasm"] * 100) : 0.5;
+            sarcasmSliderValue.innerHTML = (sarcasmSliderInput.value / 100.0).toFixed(2);
+
+            user_assistant_name = assistantName.value.trim();
+        }
+
+        async function get_user_settings(user_id) {
+            const result = await fetch(`${scheme}://${host_name}/user_settings/` + user_id, {headers: {'mode':'no-cors'}});
+            const user_settings = await result.json();
+            console.log(user_settings)
+            updateUserSettingHTML(user_settings);
+        }
+
+        messageInput.onkeypress = (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendButton.click();
+            }
+        };
+
+        function saveUserSettingsLocally() {
+            const userName = document.getElementById('user-name');
+            const assistantName = document.getElementById('assistant-name');
+            const assistantGender = document.getElementById('assistant-gender');
+            const assistantRelationship = document.getElementById('assistant-relationship');
+            const assistantMode = document.getElementById('assistant-mode');
+            const aiDescription = document.getElementById('ai-description');
+            const userInterests = document.getElementById('user-interests');
+
+            // TODO: check that all of these match the iOS frontend
+            let user_name = userName.value.trim();
+            let assistant_name = assistantName.value.trim();
+            let assistant_gender = assistantGender.value.trim();
+            let assistant_relationship = assistantRelationship.value.trim();
+            let assistant_mode = assistantMode.value.trim();
+            let ai_description = aiDescription.value.trim() === "" ? [] : aiDescription.value.trim().split("\n");
+            let user_interests = userInterests.value.trim() === "" ? [] : userInterests.value.trim().split("\n");
+            let sarcasm = sarcasmSliderInput.value / 100.0;
+
+            user_assistant_name = assistant_name;
+
+            // TODO: check that all of these match the iOS frontend
+            const user_settings_data = {
+                "userId": user_id,
+                "yourName": user_name === "" ? null : user_name,
+                "assistantsName": assistant_name,
+                "gender": assistant_gender === "no-selection" ? null : assistant_gender,
+                "relationship": assistant_relationship === "no-selection" ? null : assistant_relationship,
+                "gptMode": assistant_mode,
+                "aiDescription": ai_description,
+                "aiSarcasm": sarcasm,
+                "yourInterests": user_interests,
+                "newsKeywords": null,
+            }
+
+            const jsonData = JSON.stringify(user_settings_data, null, 2);
+            const blob = new Blob([jsonData], {type: "application/json;charset=utf-8"});
+            const date = new Date();
+            const timestamp = date.toISOString().replace(/[:\-T]/g, "_").replace(/\..+/, "");
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `ai_settings_${timestamp}.json`;
+            a.click();
+        }
+
+        document.getElementById("save-settings").onclick = () => {saveUserSettingsLocally();};
+
+        function loadUserLocalSettings(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const user_settings = JSON.parse(event.target.result);
+                updateUserSettingHTML(user_settings);
+                const options = {
+                    method: "POST",
+                    body: JSON.stringify(user_settings),
+                    headers: {"Content-Type": "application/json"}
+                }
+                const result = await fetch(`${scheme}://${host_name}/user_settings/` + user_id, options);
+                console.log(result);
+            };
+            reader.readAsText(file);
+        }
+
+        async function loadAvailableModels() {
+            const result = await fetch(`${scheme}://${host_name}/all_models/` + user_id, {headers: {'mode':'no-cors'}});
+            const modelJson = await result.json();
+            const assistantMode = document.getElementById('assistant-mode');
+
+            for (var key in modelJson) {
+                var option = document.createElement("option");
+                option.value = key;
+                option.text = key;
+                option.title = modelJson[key]["description"];
+                assistantMode.appendChild(option);
+            }
+        }
+
+        // load the models first, then update user settings, as the user settings is dependeng on the available models.
+        loadAvailableModels().then(()=>{get_user_settings(user_id);});
+    </script>
+</body>
+</html>
