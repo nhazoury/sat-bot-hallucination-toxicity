@@ -71,8 +71,8 @@ interrupt_flags = {}
 #HERE API KEYS ARE INITIALIZED FROM ENV FILE
 dotenv.load_dotenv()
 openai.api_key = os.environ["OPENAI_KEY"]
-model = "gpt-4"
-#model = "gpt-3.5-turbo"
+#model = "gpt-4"
+model = "gpt-3.5-turbo"
 
 key_filepath = os.path.join(os.path.dirname(__file__), "firebase_key.json")
 cred = credentials.Certificate(json.load(open(key_filepath)))
@@ -195,7 +195,7 @@ tool_kwargs = {
     "memory_repetitive_check": False,
     "file_word_limit": 600,
     "file_top_k": 2,
-    "path_to_sat_dataset": "sat_protocol_data.json"
+    "path_to_sat_dataset": "sat_protocol_data.json" 
 }
 clear_all_event_handlers()
 
@@ -788,8 +788,8 @@ def update_model(user_id):
     if settings["gptMode"] in GPT_MODELS:
         model_name = GPT_MODELS[settings["gptMode"]]["model_name"]
     else:
-        model_name = "gpt-4-0613"
-        #model_name = "gpt-4-turbo"
+        # model_name = "gpt-4-0613"
+        model_name = "gpt-3.5-turbo-0125"
     print(f"{model_name} is selected for {user_id}")
     if model_name != userAssistants[0].assistant_settings["model"]:
         current_user_settings = get_user_settings_route(user_id)

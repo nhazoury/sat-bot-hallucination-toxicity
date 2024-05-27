@@ -14,7 +14,8 @@ class BaseAssistant(ABC):
         self.init_prompt_offset = 4
 
         if "model" not in self.assistant_settings:
-            self.assistant_settings["model"] = "gpt-4"
+            # self.assistant_settings["model"] = "gpt4"
+            self.assistant_settings["model"] = "gpt-3.5-turbo-0125"
         
         if "gender" not in self.assistant_settings:
             self.assistant_settings["gender"] = "other"
@@ -113,7 +114,9 @@ class BaseAssistant(ABC):
         ## also, we dont want to pass the entire convo history to chatcompletions, you just want it to respond to the last few messages. However, i think such a safeguard is already implemented in the messages obj, or CAN be implemented there.
         return messages
     
-    def num_tokens_from_messages(self, messages, model="gpt-4-0613"):
+    # def num_tokens_from_messages(self, messages, model="gpt-4-0613"):
+    def num_tokens_from_messages(self, messages, model="gpt-3.5-turbo-0125"):
+
 
         encoding = tiktoken.get_encoding("cl100k_base")
 
@@ -153,9 +156,9 @@ class BaseAssistant(ABC):
         #calculate number of tokens used when passing to gpt
         num_tokens = self.num_tokens_from_messages(messages)
         print(f"NUMBER OF TOKENS USED FOR ONE ITERATION: ", num_tokens)
-        total_tokens_used_today = kwargs.get("total_tokens_used_today", {})
-        total_tokens_used_today[user_id] += num_tokens
-        print(f"TOTAL NUMBER OF TOKENS USED SO FAR: ", total_tokens_used_today[user_id])
+        # total_tokens_used_today = kwargs.get("total_tokens_used_today", {})
+        # total_tokens_used_today[user_id] += num_tokens
+        # print(f"TOTAL NUMBER OF TOKENS USED SO FAR: ", total_tokens_used_today[user_id])
 
         
 
