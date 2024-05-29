@@ -4,7 +4,7 @@ def read_transcript(filepath):
     with open(filepath, "r") as file:
 
         transcript = file.read()
-        on_assistant = True
+        on_user = True
 
         text = ""
 
@@ -17,7 +17,7 @@ def read_transcript(filepath):
                 _, _, next_part = transcript.partition("Assistant: ")
 
                 # assistant was speaking previously
-                if on_assistant:
+                if on_user:
                     # continue adding text
                     same_user = True
 
@@ -25,13 +25,13 @@ def read_transcript(filepath):
                     # new speaker, flush text and add to JSON
                     same_user = False
                 
-                on_assistant = True
+                on_user = True
             
             elif transcript.startswith("User: "):
                 _, _, next_part = transcript.partition("User: ")
 
                 # assistant was speaking previously
-                if on_assistant:
+                if on_user:
                     # new speaker, flush text and add to JSON
                     same_user = False
                 
@@ -39,7 +39,7 @@ def read_transcript(filepath):
                     # continue adding text
                     same_user = True
                 
-                on_assistant = False
+                on_user = False
             
             else:
                 print("what")
@@ -68,7 +68,7 @@ def read_transcript(filepath):
             else:
                 # add current line to json
                 new_line = {
-                    "role": "assistant" if on_assistant else "user",
+                    "role": "user" if on_user else "assistant",
                     "content": text
                 }
                 transcript_json.append(new_line)
