@@ -4,84 +4,65 @@ def read_transcript(filepath):
     with open(filepath, "r") as file:
 
         transcript = file.read()
-        on_user = True
-
-        text = ""
+        curr_is_user = True
 
         transcript_json = []
-        same_user = True
-        while transcript:
 
+        while transcript:
             # SAT bot speaks
             if transcript.startswith("Assistant:"):
                 _, _, next_part = transcript.partition("Assistant: ")
-
-                # assistant was speaking previously
-                if on_user:
-                    # continue adding text
-                    same_user = True
-
-                else:
-                    # new speaker, flush text and add to JSON
-                    same_user = False
-                
-                on_user = True
+                curr_is_user = False
             
             elif transcript.startswith("User: "):
                 _, _, next_part = transcript.partition("User: ")
+                curr_is_user = True
 
-                # assistant was speaking previously
-                if on_user:
-                    # new speaker, flush text and add to JSON
-                    same_user = False
-                
-                else:
-                    # continue adding text
-                    same_user = True
-                
-                on_user = False
-            
-            else:
-                print("what")
-                break
-
-            # find next speaker
+            # find line content
             next_user = next_part.find("User: ")
             next_assistant = next_part.find("Assistant: ")
 
             candidates = []
             if next_user != -1:
                 candidates.append(next_user)
-            if next_assistant != 1:
+            if next_assistant != -1:
                 candidates.append(next_assistant)
 
-            if not candidates:
-                break
-            
-            break_index = min(candidates)
-            line = next_part[:break_index]
-
-            if same_user:
-                # extend current line
-                text += line
-
+            if candidates:
+                break_index = min(candidates)
+                line = next_part[:break_index]
+                at_end = False
             else:
-                # add current line to json
+                line = next_part
+                at_end = True
+
+            # add line
+            if not transcript_json:
+                prev_is_user = not curr_is_user
+            else:
+                prev_is_user = transcript_json[-1]["role"] == "user"
+
+            if prev_is_user == curr_is_user:
+                # add on to last line
+                transcript_json[-1]["content"] += line
+            else:
+                # new line
                 new_line = {
-                    "role": "user" if on_user else "assistant",
-                    "content": text
+                    "role": "user" if curr_is_user else "assistant",
+                    "content": line
                 }
                 transcript_json.append(new_line)
 
-                text = line
-            
+            if at_end:
+                break
+
             transcript = next_part[break_index:]
-        
+                
         return transcript_json
     
 
 def save_transcript(transcript: dict):
-    with open(f"transcripts/json/user_study/transcript_0.txt", "w") as file:
+    with open(f"transcripts/json/user_study/transcript_0.json", "w") as file:
         json.dump(transcript, file, indent=4)
 
 
