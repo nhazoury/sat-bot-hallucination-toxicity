@@ -1,7 +1,8 @@
 import json
 import os
 
-def read_transcript(filepath):
+
+def read_raw_transcript(filepath):
     with open(filepath, "r") as file:
 
         transcript = file.read()
@@ -74,5 +75,5 @@ if __name__ == "__main__":
 
     for file in transcript_files:
         transcript_filepath = os.path.join(dir_filepath, file)
-        transcript = read_transcript(transcript_filepath)
+        transcript = read_raw_transcript(transcript_filepath)
         save_transcript(transcript, file)
