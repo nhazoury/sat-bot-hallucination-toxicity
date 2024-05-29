@@ -3,3 +3,4 @@ __pycache__/
 .env
 firebase_key.json
 user_study/
+extracted_questions.json

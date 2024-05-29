@@ -2,7 +2,7 @@ import json
 import os
 
 
-def read_raw_transcript(filepath):
+def read_raw_transcript(filepath: str):
     with open(filepath, "r") as file:
 
         transcript = file.read()
@@ -69,7 +69,43 @@ def save_transcript(transcript: dict, txt_filename):
         json.dump(transcript, file, indent=4)
 
 
-if __name__ == "__main__":
+def extract_questions_from_transcript(transcript: list):
+    questions = []
+
+    for i in range(1, len(transcript)-1, 2):
+        user_speaks = transcript[i]
+        bot_speaks = transcript[i+1]
+
+        assert user_speaks["role"] == "user"
+        assert bot_speaks["role"] == "assistant"
+
+        if "?" in user_speaks["content"]:
+            new_pair = {
+                "prompt": user_speaks["content"],
+                "response": bot_speaks["content"]
+            }
+            questions.append(new_pair)
+    
+    return questions
+
+
+def get_all_transcript_questions(dir_filepath: str):
+    files = os.listdir(dir_filepath)
+    questions = []
+
+    for file in files:
+        filepath = os.path.join(dir_filepath, file)
+
+        with open(filepath) as file:
+            transcript = json.load(file)
+            new_qs = extract_questions_from_transcript(transcript)
+            questions.extend(new_qs)
+    
+    with open("extracted_questions.json", "w") as file:
+        json.dump(questions, file, indent=4)
+
+
+def read_all_raw_transcripts():
     dir_filepath = "transcripts/old_format/user_study"
     transcript_files = os.listdir(dir_filepath)
 
@@ -77,3 +113,6 @@ if __name__ == "__main__":
         transcript_filepath = os.path.join(dir_filepath, file)
         transcript = read_raw_transcript(transcript_filepath)
         save_transcript(transcript, file)
+
+if __name__ == "__main__":
+    get_all_transcript_questions("transcripts/json/user_study")
