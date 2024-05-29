@@ -1,4 +1,5 @@
 import json
+import os
 
 def read_transcript(filepath):
     with open(filepath, "r") as file:
@@ -61,11 +62,17 @@ def read_transcript(filepath):
         return transcript_json
     
 
-def save_transcript(transcript: dict):
-    with open(f"transcripts/json/user_study/transcript_0.json", "w") as file:
+def save_transcript(transcript: dict, txt_filename):
+    json_filename = txt_filename.split(".")[0] + ".json"
+    with open(f"transcripts/json/user_study/{json_filename}", "w") as file:
         json.dump(transcript, file, indent=4)
 
 
 if __name__ == "__main__":
-    transcript = read_transcript("transcripts/old_format/user_study/transcript_0.txt")
-    save_transcript(transcript)
+    dir_filepath = "transcripts/old_format/user_study"
+    transcript_files = os.listdir(dir_filepath)
+
+    for file in transcript_files:
+        transcript_filepath = os.path.join(dir_filepath, file)
+        transcript = read_transcript(transcript_filepath)
+        save_transcript(transcript, file)
