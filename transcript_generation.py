@@ -93,9 +93,11 @@ class TranscriptGenerator:
 
         return content
     
-    async def receive_from_bot(self, websocket, timeout=5):
+    async def receive_from_bot(self, websocket, timeout=60):
         try:
-            return await asyncio.wait_for(websocket.recv(), timeout=timeout)
+            received = await asyncio.wait_for(websocket.recv(), timeout=timeout)
+            # print(f"RECEIVED FROM BOT: {received}")
+            return received
         except asyncio.TimeoutError:
             print("Timed out!")
             return None
@@ -137,6 +139,7 @@ class TranscriptGenerator:
                             _, _, curr_bot_response = curr_websocket_response.partition("-")
                             bot_response += curr_bot_response
                     
+                    # print(f"BOT RESPONDS: {bot_response}")
                     # update transcripts
                     new_user_message = {
                         "role": "user",
@@ -156,6 +159,8 @@ class TranscriptGenerator:
                     # User speaks
                     user_response = await user.speak(transcript_user)
                     rebuilt_user_response = await self.rebuild_response(user_response)
+
+                    # print(f"USER RESPONDS: {rebuilt_user_response}")
 
                     # update transcripts
                     new_user_message = {
