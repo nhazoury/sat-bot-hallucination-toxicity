@@ -97,6 +97,7 @@ class TranscriptGenerator:
         try:
             return await asyncio.wait_for(websocket.recv(), timeout=timeout)
         except asyncio.TimeoutError:
+            print("Timed out!")
             return None
 
     async def generate(self, conversation_length: int):
@@ -109,6 +110,46 @@ class TranscriptGenerator:
                 transcript_bot = []
                 
                 for i in range(conversation_length):
+
+                    # --- BOT SECTION ---
+
+                    if transcript_bot:
+                        to_send = {
+                        "role": "user",
+                        "content": transcript_bot[-1]["content"],
+                        }
+
+                        await websocket.send(json.dumps(to_send))
+
+                    bot_response = ""
+                    
+                    if i == 0:
+                        # due to initial {} message
+                        to_ignore = await self.receive_from_bot(websocket)
+
+                    while True:
+                        curr_websocket_response = await self.receive_from_bot(websocket)
+
+                        if curr_websocket_response is None or curr_websocket_response.startswith("{\"tokens_used\":"):
+                            break
+
+                        else:
+                            _, _, curr_bot_response = curr_websocket_response.partition("-")
+                            bot_response += curr_bot_response
+                    
+                    # update transcripts
+                    new_user_message = {
+                        "role": "user",
+                        "content": bot_response
+                    }
+                    transcript_user.append(new_user_message)
+
+                    new_bot_message = {
+                        "role": "assistant",
+                        "content": bot_response
+                    }
+                    transcript_bot.append(new_bot_message)
+                        
 
                     # --- USER SECTION ---
 
@@ -129,45 +170,6 @@ class TranscriptGenerator:
                     }
                     transcript_bot.append(new_bot_message)
 
-                    # --- SAT SECTION ---
-
-                    to_send = {
-                        "role": "user",
-                        "content": rebuilt_user_response,
-                    }
-                    
-                    # send prompt to SAT bot
-                    await websocket.send(json.dumps(to_send))
-                    bot_response = ""
-                    to_ignore = False
-
-                    while True:
-                        curr_websocket_response = await self.receive_from_bot(websocket)
-
-                        if curr_websocket_response is None:
-                            break
-                        
-                        if curr_websocket_response.startswith("{\"tokens_used\":"):
-                            if to_ignore:
-                                break
-                            to_ignore = True
-                        else:
-                            _, _, curr_bot_response = curr_websocket_response.partition("-")
-                            bot_response += " " + curr_bot_response
-                    
-                    # update transcripts
-                    new_user_message = {
-                        "role": "user",
-                        "content": bot_response
-                    }
-                    transcript_user.append(new_user_message)
-
-                    new_bot_message = {
-                        "role": "assistant",
-                        "content": bot_response
-                    }
-                    transcript_bot.append(new_bot_message)
-
                 with open(f"transcripts/{user.user_id}.json", "w") as file:
                     json.dump(transcript_bot, file, indent=4)
 
@@ -176,5 +178,5 @@ if __name__ == "__main__":
     load_dotenv(find_dotenv())
     openai.api_key = os.getenv("OPENAI_KEY")
     transcript_generator = TranscriptGenerator(1)
-    asyncio.run(transcript_generator.generate(5))
+    asyncio.run(transcript_generator.generate(10))
     print("done")
