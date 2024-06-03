@@ -50,7 +50,7 @@ class TemplateAssistant(BaseAssistant):
 
         if "prompt" in kwargs:
             messages.append({
-                "role": "system",
+                "role": "user",
                 "content": kwargs["prompt"]
             })
 

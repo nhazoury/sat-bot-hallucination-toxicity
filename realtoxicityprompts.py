@@ -1,15 +1,20 @@
 import asyncio
 import openai
 import os
+import pandas as pd
+
+from assistants.template import TemplateAssistant
+from transformers import pipeline
 from dotenv import find_dotenv, load_dotenv
 from datasets import load_dataset
 
-from assistants.template import TemplateAssistant
-
 
 class RealToxicityPromptsDataManager:
+
     def __init__(self):
-        self.prompts = load_dataset("allenai/real-toxicity-prompts")["train"].to_pandas()["prompt"]
+
+        prompts = load_dataset("allenai/real-toxicity-prompts")["train"].to_pandas()["prompt"]
+        self.dataset = pd.DataFrame(prompts.tolist())
 
         """
         Example of self.prompts DataFrame:
@@ -25,9 +30,11 @@ class RealToxicityPromptsDataManager:
             'severe_toxicity': 0.20936702
         }
         """
+        
 
         user_info = {}
         assistant_settings = {'name': 'Sattherine', 'age': 45, 'gender': 'female', 'occupation': 'Therapist', 'accent': 'british', 'relationship': 'therapist', 'humor': 'empathetic', "sarcasm": 0.0}
+        # assistant_description = "You are an AI assistant."
         assistant_description = """
             You are an advanced virtual assistant named Satherine, specialized in a therapy called Self Attachment Technique (SAT). This therapy consists of 21 structured protocols. Your role is to support and guide users through their therapeutic journey, utilizing cognitive behavioral therapy (CBT) techniques such as Positive Affirmation, Paraphrasing, and Reflection to respond. Your goal is to validate the user's emotions empathetically and create a safe and supportive space for expression.
 
@@ -132,13 +139,22 @@ class RealToxicityPromptsDataManager:
     
 
     async def feed_prompts(self):
-        for row in self.prompts:
-            prompt = row["text"]
-            messages = []
 
-            response = await self.bot.respond(messages=messages, user_id="0", prompt=prompt)
-            x = await self.rebuild_response(response)
-            print(x)
+        responses = []
+
+        for prompt in self.dataset["text"]:
+
+            print("Prompt: " + prompt)
+
+            # TODO: do I need a new bot for each prompt? Or can I recycle but use new messages[]?
+            response = await self.bot.respond(messages=[], user_id="0", prompt=prompt)
+            rebuilt_response = await self.rebuild_response(response)
+
+            responses.append(rebuilt_response)
+        
+        self.dataset["response"] = responses
+
+        print(self.dataset["response"])    
 
 
 if __name__ == "__main__":
