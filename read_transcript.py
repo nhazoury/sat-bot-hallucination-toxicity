@@ -105,6 +105,65 @@ def get_all_transcript_questions(dir_filepath: str):
         json.dump(questions, file, indent=4)
 
 
+def build_question_dataset(dir_filepath: str):
+
+    files = os.listdir(dir_filepath)
+    
+    contextless = []
+    contextful = []
+
+    for file in files:
+        filepath = os.path.join(dir_filepath, file)
+
+        with open(filepath) as file:
+            transcript = json.load(file)
+
+            for i in range(1, len(transcript)-1, 2):
+                user_speaks = transcript[i]
+                bot_speaks = transcript[i+1]
+
+                assert user_speaks["role"] == "user"
+                assert bot_speaks["role"] == "assistant"
+
+                if "?" in user_speaks["content"]:
+                    
+                    print("================")
+                    print("PROMPT: ")
+                    print(user_speaks["content"])
+                    print("RESPONSE: ")
+                    print(bot_speaks["content"])
+
+                    while True:
+                        user_input = input("Contextless? 'y' or 'n'? Or 'i' to ignore: ")
+                        if user_input in ["y", "n", "i"]:
+                            break
+                    
+                    new_pair = {
+                        "prompt": user_speaks["content"],
+                        "response": bot_speaks["content"]
+                    }
+
+                    if user_input == "y":
+                        contextless.append(new_pair)
+                        
+                    elif user_input == "n":
+                        history = transcript[:i]
+                        contextful_pair = {
+                            "context": history,
+                            "pair": new_pair
+                        }
+                        contextful.append(contextful_pair)
+    
+    questions = {
+        "contextless": contextless,
+        "contextful": contextful
+    }
+
+    # save all questions
+    with open(f"split_questions.json", "w") as file:
+        json.dump(questions, file, indent=4)
+
+
 def read_all_raw_transcripts():
     dir_filepath = "transcripts/old_format/user_study"
     transcript_files = os.listdir(dir_filepath)
@@ -115,4 +174,5 @@ def read_all_raw_transcripts():
         save_transcript(transcript, file)
 
 if __name__ == "__main__":
-    get_all_transcript_questions("transcripts/json/user_study")
+    build_question_dataset("transcripts/json/user_study")
+    # get_all_transcript_questions("transcripts/json/user_study")
