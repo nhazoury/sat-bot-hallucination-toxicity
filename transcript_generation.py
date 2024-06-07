@@ -64,7 +64,7 @@ class FakeUserGenerator:
         self.curr_id = 0
 
     def create_random_user(self):
-        fake_user = FakeUser(f"fake_user_{self.curr_id}")
+        fake_user = FakeUser(f"fake_user{self.curr_id}")
         self.curr_id += 1
         return fake_user
     
@@ -96,7 +96,7 @@ class TranscriptGenerator:
     async def receive_from_bot(self, websocket, timeout=60):
         try:
             received = await asyncio.wait_for(websocket.recv(), timeout=timeout)
-            # print(f"RECEIVED FROM BOT: {received}")
+            print(f"RECEIVED FROM BOT: {received}")
             return received
         except asyncio.TimeoutError:
             print("Timed out!")
@@ -124,20 +124,28 @@ class TranscriptGenerator:
                         await websocket.send(json.dumps(to_send))
 
                     bot_response = ""
-                    
-                    if i == 0:
-                        # due to initial {} message
-                        to_ignore = await self.receive_from_bot(websocket)
 
                     while True:
                         curr_websocket_response = await self.receive_from_bot(websocket)
-
-                        if curr_websocket_response is None or curr_websocket_response.startswith("{\"tokens_used\":"):
+                        if curr_websocket_response == "{END_TURN}" or curr_websocket_response is None:
                             break
-
-                        else:
+                        if not curr_websocket_response.startswith("{\"tokens_used\":"):
                             _, _, curr_bot_response = curr_websocket_response.partition("-")
                             bot_response += curr_bot_response
+                    
+                    # if i == 0:
+                    #     # due to initial {} message
+                    #     to_ignore = await self.receive_from_bot(websocket)
+                    #
+                    # while True:
+                    #     curr_websocket_response = await self.receive_from_bot(websocket)
+                    #
+                    #     if curr_websocket_response is None or curr_websocket_response.startswith("{\"tokens_used\":"):
+                    #         break
+                    #
+                    #     else:
+                    #         _, _, curr_bot_response = curr_websocket_response.partition("-")
+                    #         bot_response += curr_bot_response
                     
                     # print(f"BOT RESPONDS: {bot_response}")
                     # update transcripts
