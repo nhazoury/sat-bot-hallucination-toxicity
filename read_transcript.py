@@ -173,6 +173,39 @@ def read_all_raw_transcripts():
         transcript = read_raw_transcript(transcript_filepath)
         save_transcript(transcript, file)
 
+
+def find_SOS(dir_filepath: str, prev_n_messages=1):
+
+    files = os.listdir(dir_filepath)
+    
+    SOS = []
+
+    for file in files:
+        filepath = os.path.join(dir_filepath, file)
+
+        with open(filepath) as file:
+            transcript = json.load(file)
+
+            for i in range(1, len(transcript)-1, 2):
+                user_speaks = transcript[i]
+                bot_speaks = transcript[i+1]
+
+                assert user_speaks["role"] == "user"
+                assert bot_speaks["role"] == "assistant"
+
+                if "{__SOS__}" in bot_speaks["content"]:
+                    SOS_occurrence = {
+                        "history": transcript[max(0, i-2*prev_n_messages):i],
+                        "prompt": user_speaks["content"],
+                        "response": bot_speaks["content"]
+                    }
+                    SOS.append(SOS_occurrence)
+    
+    with open(f"sos.json", "w") as file:
+        json.dump(SOS, file, indent=4)
+                
+
 if __name__ == "__main__":
-    build_question_dataset("transcripts/json/user_study")
+    find_SOS("transcripts/json/user_study")
+    # build_question_dataset("transcripts/json/user_study")
     # get_all_transcript_questions("transcripts/json/user_study")
