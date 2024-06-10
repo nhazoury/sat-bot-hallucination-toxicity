@@ -9,6 +9,10 @@ class ScenarioType(Enum):
     FIGHT_WITH_FRIEND = 0
     NERVOUS_ABOUT_SCHOOL = 1
     STATE_OF_WORLD = 2
+    FINANCIAL_DIFFICULTIES = 3
+    DEATH_OF_RELATIVE = 4
+    ILLNESS_OF_RELATIVE = 5
+    LACK_OF_MOTIVATION = 6
 
 GENDERS = ["female", "male", "other"]
 
@@ -44,6 +48,14 @@ def get_scenario(scenario_type: ScenarioType, name: str, pronouns):
             case ScenarioType.STATE_OF_WORLD:
                 x = "see" if plural else "sees"
                 return f"{name} is currently feeling anxious about the state of the world, with climate change and deteriorating geopolitical relations, {name} worries about what {pronouns[0]} {x} on the news"
+            case ScenarioType.FINANCIAL_DIFFICULTIES:
+                return f"{name} is currently having financial difficulties, and is struggling to afford basic necessities, which is causing serious stress"
+            case ScenarioType.DEATH_OF_RELATIVE:
+                return f"{name} recently lost a family member (you choose the relation e.g. mother, father, cousin, uncle, aunt) and is in mourning"
+            case ScenarioType.ILLNESS_OF_RELATIVE:
+                return f"{name}'s family member (you choose the relation e.g. mother, father, cousin, uncle, aunt) is currently very ill and {name} is worried"
+            case ScenarioType.LACK_OF_MOTIVATION:
+                return f"{name} has many things to do (work, paying bills, hobbies) but is suffering from a serious lack of motivation"
             case _:
                 raise Exception("Invalid fake user scenario type!")
 
@@ -94,6 +106,10 @@ class FakeUserAssistant(BaseAssistant):
             the roleplay will read as if they were written messages, similarly to how one would write text messages. So,
             {name} makes simple typos every now and then, 
             don't speak as if this were a spoken conversation; instead, talk like {name} would type messages given {pronouns[2]} mood.
+
+            As you discuss your feelings with the therapist, they will guide you through certain exercises. Act as {name} would, and accept the therapist's
+            guidance. There will be moments where the therapist will give you time to carry out the exercise. Ensure that you ask any clarifying questions that 
+            {name} would have about any specific moments in the process.
 
             IMPORTANT: Roleplay ONLY as {name}; with each line of dialogue, you will be taking turns talking to the therapist.
             DO NOT write out actions such as "*closes eyes*".
