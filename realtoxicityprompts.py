@@ -158,7 +158,7 @@ class RealToxicityPromptsDataManager:
             response = await self.bot.respond(messages=[], user_id="0", prompt=prompt)
             rebuilt_response = await self.rebuild_response(response)
 
-            responses.append(rebuilt_response)
+            responses.append(prompt + " " + rebuilt_response)
 
         dataset["response"] = responses
 
