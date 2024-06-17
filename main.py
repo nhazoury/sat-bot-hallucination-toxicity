@@ -72,7 +72,7 @@ interrupt_flags = {}
 dotenv.load_dotenv()
 openai.api_key = os.environ["OPENAI_KEY"]
 #model = "gpt-4"
-model = "gpt-3.5-turbo"
+model = "gpt-4-turbo"
 
 key_filepath = os.path.join(os.path.dirname(__file__), "firebase_key.json")
 cred = credentials.Certificate(json.load(open(key_filepath)))
@@ -80,6 +80,12 @@ cred = credentials.Certificate(json.load(open(key_filepath)))
 fb_app = firebase_admin.initialize_app(cred, name=__name__)
 db = firestore.client(fb_app)
 messages: Dict[str, Messages] = {}
+
+# Hallucination testing
+SELFCHECKGPT = True
+SELFCHECKGPT_NUM_SAMPLES = 5
+
+CALC_PERPLEXITY = True
 
 ### changes since deployment ###
 handle_SOS: Dict[str, bool] = {}
@@ -495,8 +501,15 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
         ]
         return random.choice(choices_msg)
 
+    async def rebuild_response(response):
+        content = ""
 
+        async for chunk in response:
+            delta = chunk['choices'][0]['delta']
+            if 'content' in delta:
+                content += delta['content']
 
+        return content
 
 
     response = bot_args.get("bot_res", None) #bot_args consists of user_info and query_results
@@ -521,6 +534,16 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
                     )
                     return response
                 """
+
+                if SELFCHECKGPT:
+                    samples = []
+                    for sample_num in range(SELFCHECKGPT_NUM_SAMPLES):
+                        sample_response = await Bot.respond(messages[user_id].get(), user_id, **bot_args)
+                        sample = await rebuild_response(sample_response)
+                        print("PRINTING SAMPLE")
+                        print(sample)
+                        samples.append(sample)
+
                 break
             except Exception as e:
                 print("try number: ", i)
@@ -533,6 +556,8 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
     full_response = bot_args.get("init_content", "")
     sentences = []
     num_sentences = 2
+
+    unchanged_response = ""
 
     try:
         interrupt_flags[user_id] = False
@@ -547,7 +572,8 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
             delta = chunk['choices'][0]['delta']
             if 'content' in delta:
                 content += delta['content']
-                full_response += delta['content'] 
+                full_response += delta['content']
+                unchanged_response += delta['content']
 
             
             sentences_exist, sentence, rest = check_sentence(content)
@@ -670,7 +696,29 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
                 sentences = []
                 # logger.info("SENT: " + first_two)
                 num_sentences += 1
-        
+
+        # SELFCHECKGPT
+        if SELFCHECKGPT:
+
+            filepath = "selfcheckgpt.json"
+
+            if os.path.exists(filepath):
+                with open(filepath, "r") as file:
+                    selfcheckgpt_results = json.load(file)
+            else:
+                selfcheckgpt_results = []
+
+            selfcheckgpt_results.append(
+                {
+                    "response": unchanged_response,
+                    "samples": samples
+                }
+            )
+
+            with open(filepath, "w") as file:
+                print(selfcheckgpt_results)
+                json.dump(selfcheckgpt_results, file, indent=4)
+
     except asyncio.CancelledError:
         logger.warning("Cancelled")
         pass
@@ -1782,7 +1830,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 
 
     
-    assistant_settings = {'name': 'Sattherine', 'age': 45, 'gender': 'female', 'occupation': 'Therapist', 'accent': 'british', 'relationship': 'therapist', 'humor': 'empathetic', 'model': "gpt4", "sarcasm": 0.0}
+    assistant_settings = {'name': 'Sattherine', 'age': 45, 'gender': 'female', 'occupation': 'Therapist', 'accent': 'british', 'relationship': 'therapist', 'humor': 'empathetic', 'model': model, "sarcasm": 0.0}
     assistant_description= [
     "You are an advanced virtual assistant named Satherine, specialized in guiding users through the Self Attachment Therapy (SAT) protocol. As a virtual human companion with the primary role of a therapist, your approach is supportive, empathetic, and tailored to the emotional and therapeutic progress of users over a two week program with 20 structured protocols.",
 
