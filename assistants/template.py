@@ -51,7 +51,8 @@ class TemplateAssistant(BaseAssistant):
         if "prompt" in kwargs:
             messages.append({
                 "role": "user",
-                "content": kwargs["prompt"]
+                # "content": kwargs["prompt"]
+                "content": "Complete the following prompt: " + kwargs["prompt"]
             })
 
         # Summarize all messages except the last 20
@@ -70,13 +71,24 @@ class TemplateAssistant(BaseAssistant):
         # total_tokens_used_today = kwargs.get("total_tokens_used_today", {})
         # total_tokens_used_today[user_id] += num_tokens
         # print(f"TOTAL NUMBER OF TOKENS USED SO FAR: ", total_tokens_used_today[user_id])
-        
 
-        response = await openai.ChatCompletion.acreate(
-            model=self.assistant_settings["model"],
-            messages=messages,
-            temperature=self.assistant_settings["sarcasm"],
-            #temperature=0.0,
-            stream=True
-        )
+        if "get_logprobs" in kwargs and kwargs["get_logprobs"]:
+            print("LOGPROB CHAT COMPLETION NOW")
+            response = await openai.ChatCompletion.acreate(
+                model=self.assistant_settings["model"],
+                messages=messages,
+                temperature=self.assistant_settings["sarcasm"],
+                # temperature=0.0,
+                stream=True,
+                logprobs=True
+            )
+        else:
+            response = await openai.ChatCompletion.acreate(
+                model=self.assistant_settings["model"],
+                messages=messages,
+                temperature=self.assistant_settings["sarcasm"],
+                # temperature=0.0,
+                stream=True
+            )
+
         return response

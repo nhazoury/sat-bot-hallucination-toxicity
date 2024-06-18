@@ -30,7 +30,7 @@ from user_tool_settings import (ToolStatus, get_user_enabled_tools,
                                 get_user_tools, init_tools, set_user_tools)
 
 import tiktoken
-
+import numpy as np
 
 
 ### changes since deployment ###
@@ -72,8 +72,8 @@ interrupt_flags = {}
 dotenv.load_dotenv()
 openai.api_key = os.environ["OPENAI_KEY"]
 #model = "gpt-4"
-model = "gpt-4-turbo"
-
+# model = "gpt-4-turbo"
+model = "gpt-3.5"
 key_filepath = os.path.join(os.path.dirname(__file__), "firebase_key.json")
 cred = credentials.Certificate(json.load(open(key_filepath)))
 
@@ -82,6 +82,8 @@ db = firestore.client(fb_app)
 messages: Dict[str, Messages] = {}
 
 # Hallucination testing
+HALLUCINATION_TESTING = True
+
 SELFCHECKGPT = True
 SELFCHECKGPT_NUM_SAMPLES = 5
 
@@ -518,7 +520,13 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
     if response is None: #if query_oracle just returned query_results bcos a function call was made, the last message in the messagesdict will be {"role": "user", "content": f"The following are the results of the function calls in JSON form: {query_results}. Use these results to answer the original query ('{user_input}') as if it is a natural conversation. Be concise. Do not use list, reply in paragraphs. Don't include specific addresses unless I ask for them. When you see units like miles, convert them to metrics, like kilometers."}
         for i in range(3):
             try:
-                response = await Bot.respond(messages[user_id].get(), user_id, **bot_args) #messages is a global variable. Bot is ALWAYS MainAssistant, which is TemplateAssistant(user_info=user_info, assistant_settings=assistant_settings, assistant_descriptions=assistant_description)
+                if CALC_PERPLEXITY:
+                    print("PERPLEXITY MODE")
+                    response = await Bot.respond(messages[user_id].get(), user_id, **bot_args, get_logprobs=True) #messages is a global variable. Bot is ALWAYS MainAssistant, which is TemplateAssistant(user_info=user_info, assistant_settings=assistant_settings, assistant_descriptions=assistant_description)
+                    print("RESPONSE GOTTEN")
+                else:
+                    print("NON-PERPLEXITY MODE")
+                    response = await Bot.respond(messages[user_id].get(), user_id, **bot_args) #messages is a global variable. Bot is ALWAYS MainAssistant, which is TemplateAssistant(user_info=user_info, assistant_settings=assistant_settings, assistant_descriptions=assistant_description)
                 """
                 The response function from MainAssistant looks as follows:
                 async def respond(self, messages: List[Dict[str, str]], *args: Any, **kwargs: Any, ) -> Any:
@@ -557,7 +565,9 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
     sentences = []
     num_sentences = 2
 
+    # hallucination testing
     unchanged_response = ""
+    logprobs = []
 
     try:
         interrupt_flags[user_id] = False
@@ -575,6 +585,12 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
                 full_response += delta['content']
                 unchanged_response += delta['content']
 
+            # collect logprobs for perplexity calculation
+            chunk_choices = chunk["choices"][0]
+            try:
+                logprobs.append(chunk["choices"][0]["logprobs"]["content"][0]["logprob"])
+            except:
+                pass
             
             sentences_exist, sentence, rest = check_sentence(content)
             if sentences_exist:
@@ -697,27 +713,36 @@ async def streaming_response(websocket: WebSocket, Bot, user_id, **bot_args):  #
                 # logger.info("SENT: " + first_two)
                 num_sentences += 1
 
-        # SELFCHECKGPT
-        if SELFCHECKGPT:
-
-            filepath = "selfcheckgpt.json"
+        if HALLUCINATION_TESTING:
+            filepath = "hallucination_results.json"
 
             if os.path.exists(filepath):
                 with open(filepath, "r") as file:
-                    selfcheckgpt_results = json.load(file)
+                    hallucination_results = json.load(file)
             else:
-                selfcheckgpt_results = []
+                hallucination_results = []
 
-            selfcheckgpt_results.append(
-                {
-                    "response": unchanged_response,
-                    "samples": samples
-                }
-            )
+            to_add = {
+                "response": unchanged_response
+            }
+
+            # SELFCHECKGPT
+            if SELFCHECKGPT:
+                to_add["samples"] = samples
+
+            # PERPLEXITY
+            if CALC_PERPLEXITY:
+                logprobs = [logprob for logprob in logprobs if logprob is not None]
+
+                perplexity = np.exp(-np.mean(logprobs))
+                to_add["perplexity"] = perplexity
+
+            hallucination_results.append(to_add)
 
             with open(filepath, "w") as file:
-                print(selfcheckgpt_results)
-                json.dump(selfcheckgpt_results, file, indent=4)
+                print(hallucination_results)
+                json.dump(hallucination_results, file, indent=4)
+
 
     except asyncio.CancelledError:
         logger.warning("Cancelled")
