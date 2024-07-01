@@ -4,6 +4,10 @@ Custom classifier: https://huggingface.co/noah135/toxicity_classifier
 
 Additional API key: `PERSPECTIVE_API_KEY`
 
+Work on this project can be found in various files: new files include `transcript_generation.py`, `realtoxicityprompts.py`, `hallucination_questions.py`, `read_transcript.py`
+Additionally, several other pre-existing files were edited, such as `main.py`, `assistants/template.py` and more.
+Finally, several Jupyter notebooks contain large portions of project code, found in the `notebooks/` directory.
+
 ================================
 
 Note: `tools` folder is adapted from [here](https://github.com/extropolis/ChatBE-plugins)
