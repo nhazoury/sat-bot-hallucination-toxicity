@@ -1,3 +1,11 @@
+The initial state of this project was inherited from another student.
+
+Custom classifier: https://huggingface.co/noah135/toxicity_classifier
+
+Additional API key: `PERSPECTIVE_API_KEY`
+
+================================
+
 Note: `tools` folder is adapted from [here](https://github.com/extropolis/ChatBE-plugins)
 
 ## API keys
