@@ -16,6 +16,9 @@ class BaseAssistant(ABC):
         if "model" not in self.assistant_settings:
             # self.assistant_settings["model"] = "gpt4"
             self.assistant_settings["model"] = "gpt-3.5-turbo-0125"
+            # self.assistant_settings["model"] = "gpt-4-turbo"
+
+        print(f"INIITIALISING ASSISTANT: using model '{self.assistant_settings['model']}'")
         
         if "gender" not in self.assistant_settings:
             self.assistant_settings["gender"] = "other"
@@ -86,6 +89,7 @@ class BaseAssistant(ABC):
 
         response = await openai.ChatCompletion.acreate(
             model="gpt-3.5-turbo-16k",
+            # model="gpt-4-turbo",
             messages=conversations + [{"role": "user", "content": new_message}],
             # temperature=0
         ) #currently we just send this as a prompt to gpt and hope for the best, we hope it actually executes this and returns the filled out json. perhaps to make this more robust, we can replace the regular llm call with openai function format like in our langgraph implementation
@@ -115,7 +119,8 @@ class BaseAssistant(ABC):
         return messages
     
     # def num_tokens_from_messages(self, messages, model="gpt-4-0613"):
-    def num_tokens_from_messages(self, messages, model="gpt-3.5-turbo-0125"):
+    # def num_tokens_from_messages(self, messages, model="gpt-3.5-turbo-0125"):
+    def num_tokens_from_messages(self, messages, model="gpt-4-turbo"):
 
 
         encoding = tiktoken.get_encoding("cl100k_base")
@@ -150,8 +155,8 @@ class BaseAssistant(ABC):
             messages = messages[-15:-2] + [{"role": "system", "content": self.initial_prompt}] + messages[-2:]
         else:
             messages = self._insert_initial_prompt(messages)
-        print(f"Responding with sarcasm: {self.assistant_settings['sarcasm']}")
-        print(f"Responding with messages: ", messages)
+        # print(f"Responding with sarcasm: {self.assistant_settings['sarcasm']}")
+        # print(f"Responding with messages: ", messages)
 
         #calculate number of tokens used when passing to gpt
         num_tokens = self.num_tokens_from_messages(messages)

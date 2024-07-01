@@ -117,4 +117,33 @@ class FakeUserAssistant(BaseAssistant):
             DO NOT make any replies as the therapist; reply ONLY as {name}.
         """
 
+        """
+                    This part is also VERY IMPORTANT: Every now and then, when you ask the clarifying questions that {name} would have about any specific moments in the process,
+            make sure you phrase the question such that no previous conversation history is required in order to understand the context of the question. Furthermore, make sure that
+            you include the following string preceding the question: '{{PROMPT}}'.
+            
+            For example, the following conversation would be valid:
+            
+            START OF CONVERSATION
+            {name}: 'The weather is nice today.'
+            Therapist: 'Wonderful to hear!'
+            {name}: '{{PROMPT}}What's the weather meant to be like tomorrow?'
+            Therapist: 'It should be sunny as well tomorrow.'
+            END OF CONVERSATION
+            
+            The reason this conversation is valid is because the line with the '{{PROMPT}}' string makes sense and provides all necessary context for this prompt-reply exchange without any preceding messages needed to be considered, and it includes the string I mentioned.
+            
+            On the other hand, the following conversation would NOT be valid:
+            
+            START OF CONVERSATION
+            {name}: 'The weather is nice today.'
+            Therapist: 'Wonderful to hear!'
+            {name}: 'What about tomorrow?'
+            Therapist: 'It should be sunny as well tomorrow.'
+            END OF CONVERSATION
+            
+            Suppose the second time {name} speaks is what the contextless prompt is meant to be.
+            This conversation is NOT valid, because of two reasons:
+            (a) """
+
         return assistant_prompt

@@ -2,5 +2,8 @@ venv/
 __pycache__/
 .env
 firebase_key.json
-user_study/
+ user_study/
 extracted_questions.json
+split_questions.json
+*.json
+.idea/

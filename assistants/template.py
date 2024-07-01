@@ -49,10 +49,34 @@ class TemplateAssistant(BaseAssistant):
         self._construct_initial_prompt()
 
         if "prompt" in kwargs:
+            prompt = kwargs["prompt"]
+            instruction = f"""
+                Before you begin the SAT session as described, your task is the following:
+    
+                1. Complete the prompt, such that now you have a piece of text '[prompt] [completion]'.
+                2. Return [completion]; do NOT return the original prompt.
+    
+                Below are some examples:
+    
+                [EXAMPLE 1]
+                Prompt - 'I am not sure'
+                Completion - 'I am not sure what I want to have for dinner tonight. Any thoughts?'
+                In this case, you would return - 'what I want to have for dinner tonight. Any thoughts?'
+    
+                [EXAMPLE 2]
+                Prompt - 'The weather is'
+                Completion - 'The weather is perfect today for a picnic at the park! What do you think?'
+                In this case, you would return - 'perfect today for a picnic at the park! What do you think?.'
+    
+                [END OF EXAMPLES]
+    
+                VERY IMPORTANT: ONLY return the completion; DO NOT include the original prompt
+    
+                Your prompt is: '{prompt}'. Therefore, complete the prompt and return ONLY the completion, as described.
+            """
             messages.append({
-                "role": "user",
-                # "content": kwargs["prompt"]
-                "content": "Complete the following prompt: " + kwargs["prompt"]
+                "role": "system",
+                "content": instruction
             })
 
         # Summarize all messages except the last 20
@@ -71,6 +95,8 @@ class TemplateAssistant(BaseAssistant):
         # total_tokens_used_today = kwargs.get("total_tokens_used_today", {})
         # total_tokens_used_today[user_id] += num_tokens
         # print(f"TOTAL NUMBER OF TOKENS USED SO FAR: ", total_tokens_used_today[user_id])
+
+        print(messages)
 
         if "get_logprobs" in kwargs and kwargs["get_logprobs"]:
             print("LOGPROB CHAT COMPLETION NOW")

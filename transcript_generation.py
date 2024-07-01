@@ -1,5 +1,6 @@
 from dotenv import find_dotenv, load_dotenv
 from assistants.fake_user import FakeUserAssistant, ScenarioType, GENDERS, PERSONALITIES, OCCUPATIONS
+from hallucination_questions import user_study_prompts, non_user_study
 import random
 import names
 import asyncio
@@ -75,7 +76,82 @@ class FakeUserGenerator:
         return fake_users
     
 
-class TranscriptGenerator:
+
+class PromptFeeder:
+    def __init__(self, prompts):
+        self.prompts = prompts
+
+
+    async def rebuild_response(self, response):
+        content = ""
+
+        async for chunk in response:
+            delta = chunk['choices'][0]['delta']
+            if 'content' in delta:
+                content += delta['content']
+
+        return content
+
+
+    async def receive_one_from_bot(self, websocket, timeout=60):
+        try:
+            received = await asyncio.wait_for(websocket.recv(), timeout=timeout)
+            print(f"RECEIVED FROM BOT: {received}")
+            return received
+        except asyncio.TimeoutError:
+            print("Timed out!")
+            return None
+
+
+    async def receive_from_bot(self, websocket):
+        bot_response = ""
+
+        while True:
+            curr_websocket_response = await self.receive_one_from_bot(websocket)
+            if curr_websocket_response == "{END_TURN}" or curr_websocket_response is None:
+                break
+            if not curr_websocket_response.startswith("{\"tokens_used\":"):
+                _, _, curr_bot_response = curr_websocket_response.partition("-")
+                bot_response += curr_bot_response
+
+        return bot_response
+
+    async def feed_prompts(self):
+        responses = []
+        for i, prompt in enumerate(self.prompts):
+            uri = f"ws://127.0.0.1:8000/ws/prompted_user_study_prompts_{i}"
+            async with websockets.connect(uri) as websocket:
+
+                first_response = await self.receive_from_bot(websocket)
+
+                to_send = {
+                    "role": "user",
+                    "content": ".",
+                }
+
+                await websocket.send(json.dumps(to_send))
+
+                second_response = await self.receive_from_bot(websocket)
+
+                to_send = {
+                    "role": "user",
+                    "content": prompt
+                }
+
+                await websocket.send(json.dumps(to_send))
+
+                response_to_prompt = await self.receive_from_bot(websocket)
+
+                responses.append({
+                    "prompt": prompt,
+                    "response": response_to_prompt
+                })
+
+        with open(f"HALLUCINATION_prompts.json", "w") as file:
+            json.dump(responses, file, indent=4)
+
+
+class FakeTranscriptGenerator:
     def __init__(self, num_users: int):
         self.num_users = num_users
 
@@ -106,7 +182,7 @@ class TranscriptGenerator:
         messages = []
 
         for user in self.users:
-            uri = f"ws://127.0.0.1:8000/ws/{user.user_id}"
+            uri = f"ws://127.0.0.1:8000/ws/fake_user_{user.user_id}"
             async with websockets.connect(uri) as websocket:
                 transcript_user = []
                 transcript_bot = []
@@ -190,6 +266,12 @@ class TranscriptGenerator:
 if __name__ == "__main__":
     load_dotenv(find_dotenv())
     openai.api_key = os.getenv("OPENAI_KEY")
-    transcript_generator = TranscriptGenerator(1)
-    asyncio.run(transcript_generator.generate(10))
+
+    prompts = non_user_study
+
+    # prompt_feeder = PromptFeeder(prompts=prompts)
+    # asyncio.run(prompt_feeder.feed_prompts())
+    #
+    transcript_generator = FakeTranscriptGenerator(3)
+    asyncio.run(transcript_generator.generate(15))
     print("done")
